@@ -624,25 +624,25 @@ static void tag_write(TagLib::Ogg::XiphComment *tag, const ScanResult &result, c
     // Opus RFC 7845 tag
     if (std::is_same_v<T, TagLib::Ogg::Opus::File> && (config.opus_mode == 'r' || config.opus_mode == 's')) {
         tag->addField(R128_STRING[static_cast<int>(R128Tag::TRACK_GAIN)], 
-            rsgain::format("{}", GAIN_TO_Q78(result.track_gain))
+            /* normalize to -23LUFS */
+            rsgain::format("{}", GAIN_TO_Q78((-23.0 - config.target_loudness + result.track_gain)))
         );
 
         if (config.do_album) {
             tag->addField(R128_STRING[static_cast<int>(R128Tag::ALBUM_GAIN)], 
-                rsgain::format("{}", GAIN_TO_Q78(result.album_gain))
+                /* normalize to -23LUFS */
+                rsgain::format("{}", GAIN_TO_Q78((-23.0 - config.target_loudness + result.album_gain)))
             );
         }
     }
 
     // Default ReplayGain tag
-    else {
-        write_rg_tags(result,
-            config,
-            [&](RGTag rg_tag, const TagLib::String &value) {
-                tag->addField(RG_STRING[static_cast<size_t>(rg_tag)], value);
-            }
-        );
-    }
+    write_rg_tags(result,
+        config,
+        [&](RGTag rg_tag, const TagLib::String &value) {
+            tag->addField(RG_STRING[static_cast<size_t>(rg_tag)], value);
+        }
+    );
 }
 
 static void tag_clear(TagLib::MP4::Tag *tag)
